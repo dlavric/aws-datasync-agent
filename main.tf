@@ -1,15 +1,16 @@
 terraform {
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "5.38.0"
     }
   }
 }
 
 provider "aws" {
- region = "eu-west-2"
+  region = "eu-west-2"
 }
+
 
 resource "aws_vpc" "test" {
   cidr_block       = "10.0.0.0/16"
@@ -79,6 +80,14 @@ resource "aws_security_group" "test" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "port 80"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = {
     Name = "daniela-tag"
   }
@@ -87,11 +96,12 @@ resource "aws_security_group" "test" {
 resource "aws_instance" "test" {
   depends_on = [aws_internet_gateway.test]
 
-  ami                         = "ami-0e5f882be1900e43b"
+  ami                         = data.aws_ssm_parameter.aws_service_datasync_ami.value
   associate_public_ip_address = true
-  instance_type               = "t3.micro"
+  instance_type               = "m5.2xlarge"
   vpc_security_group_ids      = [aws_security_group.test.id]
   subnet_id                   = aws_subnet.test.id
+  key_name                    = "daniela-fdo-key2"
 
   tags = {
     Name = "daniela-tag"
@@ -99,6 +109,9 @@ resource "aws_instance" "test" {
 }
 
 resource "aws_datasync_agent" "test" {
+  name       = "daniela-datasync-agent"
   ip_address = aws_instance.test.public_ip
+  #   subnet_arns    = [aws_subnet.test.arn]
+  #   security_group_arns = [aws_security_group.test.arn]
 }
 
